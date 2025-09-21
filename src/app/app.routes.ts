@@ -1,14 +1,24 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/guards/auth.guard';
 
+// Small helper to retry dynamic imports if the dev server restarts or a chunk name changes
+function retryImport<T>(loader: () => Promise<T>, retries = 2, delayMs = 300): Promise<T> {
+  return loader().catch((err) => {
+    if (retries <= 0) throw err;
+    return new Promise<void>((res) => setTimeout(res, delayMs)).then(() =>
+      retryImport(loader, retries - 1, Math.min(delayMs * 2, 2000))
+    );
+  });
+}
+
 export const routes: Routes = [
   {
     path: '',
-    loadComponent: () => import('./features/home/home').then(m => m.HomePage)
+    loadComponent: () => retryImport(() => import('./features/home/home').then(m => m.HomePage))
   },
   {
     path: 'test',
-    loadComponent: () => import('./features/test/test.component').then(m => m.TestComponent),
+    loadComponent: () => retryImport(() => import('./features/test/test.component').then(m => m.TestComponent)),
     canActivate: [authGuard]
   },
   {

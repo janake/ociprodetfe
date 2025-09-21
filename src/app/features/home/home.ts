@@ -1,13 +1,12 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-import { JsonPipe } from '@angular/common';
 import { KeycloakProfile } from 'keycloak-js';
 
 @Component({
   selector: 'app-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, JsonPipe],
+  imports: [RouterLink],
   template: `
     <div class="container">
       <h1>Kezdőoldal</h1>
