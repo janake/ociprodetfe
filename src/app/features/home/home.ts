@@ -16,6 +16,9 @@ import { KeycloakProfile } from 'keycloak-js';
           <a routerLink="/test" class="nav-button">
             Teszt oldal megtekintése
           </a>
+          <a routerLink="/upload" class="nav-button">
+            Fájl feltöltés
+          </a>
           <button (click)="logout()" class="nav-button">
             Kijelentkezés
           </button>
