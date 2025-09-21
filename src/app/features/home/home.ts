@@ -1,18 +1,31 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
+import { JsonPipe } from '@angular/common';
+import { KeycloakProfile } from 'keycloak-js';
 
 @Component({
   selector: 'app-home',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [RouterLink, JsonPipe],
   template: `
     <div class="container">
       <h1>Kezdőoldal</h1>
       <div class="content">
-        <p>Üdvözöljük az alkalmazásban!</p>
-        <a routerLink="/test" class="nav-button">
-          Teszt oldal megtekintése
-        </a>
+        @if (isLoggedIn()) {
+          <p>Üdvözöljük, {{ userProfile()?.firstName }}!</p>
+          <a routerLink="/test" class="nav-button">
+            Teszt oldal megtekintése
+          </a>
+          <button (click)="logout()" class="nav-button">
+            Kijelentkezés
+          </button>
+        } @else {
+          <p>Kérjük, jelentkezzen be a folytatáshoz.</p>
+          <button (click)="login()" class="nav-button">
+            Bejelentkezés
+          </button>
+        }
       </div>
     </div>
   `,
@@ -53,6 +66,8 @@ import { RouterLink } from '@angular/router';
       text-decoration: none;
       font-weight: 500;
       transition: background-color 0.2s;
+      border: none;
+      cursor: pointer;
 
       &:hover {
         background-color: #2c5282;
@@ -60,4 +75,22 @@ import { RouterLink } from '@angular/router';
     }
   `]
 })
-export class HomePage {}
+export class HomePage {
+  private readonly authService = inject(AuthService);
+
+  isLoggedIn = signal(false);
+  userProfile = signal<KeycloakProfile | null>(null);
+
+  constructor() {
+    this.authService.isLoggedIn.then((loggedIn: boolean) => this.isLoggedIn.set(loggedIn));
+    this.authService.userProfile.then(profile => this.userProfile.set(profile));
+  }
+
+  login(): void {
+    this.authService.login();
+  }
+
+  logout(): void {
+    this.authService.logout();
+  }
+}
