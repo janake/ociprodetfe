@@ -1,0 +1,101 @@
+# See https://docs.github.com/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
+
+# Compiled output
+/dist
+/tmp
+/out-tsc
+/bazel-out
+
+# Node
+/node_modules
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# IDEs and editors
+.idea/
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+*.sublime-project
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/*
+
+# Angular
+/.angular/cache
+.angular/local
+.angular/cache
+.angular/tsconfig.*.json
+
+# Miscellaneous
+.sass-cache/
+/connect.lock
+/coverage
+/libpeerconnection.log
+testem.log
+/typings
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+
+# OS generated files
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# NPM package distribution
+*.tgz
+
+# Build output
+/build
+
+# Cypress
+/cypress/videos/
+/cypress/screenshots/
+
+# Storybook
+/.storybook-static
+
+# Playwright
+/test-results/
+/playwright-report/
+
+# Firebase
+.firebase/
+.firebaserc
+
+# VSCode settings
+.vscode-test/
+
+# JetBrains Rider
+.idea/
+
+# Mac system files
+.AppleDouble
+.LSOverride
+
+# Windows system files
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux system files
+*~
