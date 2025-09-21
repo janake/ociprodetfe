@@ -21,6 +21,6 @@ export class AuthService {
   }
 
   public logout(): void {
-    this.keycloak.logout(window.location.origin).then();
+    this.keycloak.logout().then();
   }
 }
