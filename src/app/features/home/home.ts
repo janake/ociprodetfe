@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-import { KeycloakProfile } from 'keycloak-js';
+import { from, of } from 'rxjs';
 
 @Component({
   selector: 'app-home',
@@ -80,13 +81,9 @@ import { KeycloakProfile } from 'keycloak-js';
 export class HomePage {
   private readonly authService = inject(AuthService);
 
-  isLoggedIn = signal(false);
-  userProfile = signal<KeycloakProfile | null>(null);
-
-  constructor() {
-    this.authService.isLoggedIn.then((loggedIn: boolean) => this.isLoggedIn.set(loggedIn));
-    this.authService.userProfile.then(profile => this.userProfile.set(profile));
-  }
+  // Convert Promises to Observables then to signals
+  isLoggedIn = toSignal(from(this.authService.isLoggedIn()), { initialValue: false });
+  userProfile = toSignal(from(this.authService.userProfile()), { initialValue: null });
 
   login(): void {
     this.authService.login();

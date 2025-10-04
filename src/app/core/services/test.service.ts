@@ -8,7 +8,7 @@ import { TestMessage } from '../models/test-message.model';
 })
 export class TestService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = 'http://localhost:8080/api';
+  private readonly baseUrl = '/api';
 
   getMessage(): Observable<TestMessage> {
     console.log('TestService.getMessage() called');

@@ -7,7 +7,7 @@ import { Observable } from 'rxjs';
 })
 export class UploadService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8080/api/upload'; // TODO: environment-ből
+  private apiUrl = '/api/upload'; // Use relative URL; configure proxy or reverse proxy in environments
 
   upload(file: File): Observable<HttpEvent<any>> {
     const formData: FormData = new FormData();

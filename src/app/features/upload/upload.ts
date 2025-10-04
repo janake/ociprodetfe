@@ -8,6 +8,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { animate, style, transition, trigger } from '@angular/animations';
+import { Subscription } from 'rxjs';
 
 interface UploadResponse {
   message: string;
@@ -30,7 +31,7 @@ type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
             @case ('uploading') {
               <div class="upload-progress-container">
                 <p>Feltöltés folyamatban...</p>
-                <mat-progress-bar mode="determinate" [value]="uploadProgress()"></mat-progress-bar>
+                <mat-progress-bar [mode]="hasTotal() ? 'determinate' : 'indeterminate'" [value]="hasTotal() ? uploadProgress() : null"></mat-progress-bar>
                 <p class="progress-text">{{ uploadProgress() }}%</p>
               </div>
             }
@@ -42,6 +43,7 @@ type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
             }
             @default {
               <div class="drop-zone"
+                   [class.drag-over]="dragOver()"
                    (click)="fileUpload.click()"
                    (dragover)="onDragOver($event)"
                    (dragleave)="onDragLeave($event)"
@@ -58,7 +60,7 @@ type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
           }
         </mat-card-content>
         <mat-card-actions align="end">
-          <button mat-button (click)="cancelUpload()" [disabled]="status() === 'uploading'">Mégse</button>
+          <button mat-button (click)="cancelUpload()" [disabled]="status() !== 'uploading'">Mégse</button>
           <button mat-raised-button color="primary" [disabled]="!selectedFile() || status() === 'uploading'" (click)="onUpload()">
             <mat-icon>file_upload</mat-icon>
             <span>Feltöltés</span>
@@ -104,25 +106,25 @@ type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
       transition: all 0.3s ease-in-out;
       background-color: #fafafa;
       margin-bottom: 1rem;
+    }
 
-      &:hover, &.drag-over {
-        border-color: var(--primary-color);
-        background-color: var(--accent-color);
-        transform: scale(1.02);
-      }
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--primary-color);
+      background-color: var(--accent-color);
+      transform: scale(1.02);
+    }
 
-      mat-icon {
-        font-size: 56px;
-        width: 56px;
-        height: 56px;
-        color: var(--primary-color);
-        margin-bottom: 1rem;
-      }
+    .drop-zone mat-icon {
+      font-size: 56px;
+      width: 56px;
+      height: 56px;
+      color: var(--primary-color);
+      margin-bottom: 1rem;
+    }
 
-      .file-name {
-        font-weight: 500;
-        color: var(--primary-color);
-      }
+    .drop-zone .file-name {
+      font-weight: 500;
+      color: var(--primary-color);
     }
 
     .upload-progress-container, .upload-success-container {
@@ -160,7 +162,6 @@ type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
     }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  standalone: true,
   imports: [
     MatProgressBarModule,
     MatButtonModule,
@@ -182,15 +183,26 @@ export class UploadComponent {
   private snackBar = inject(MatSnackBar);
   private location = inject(Location);
 
+  private uploadSub: Subscription | null = null;
+
   selectedFile = signal<File | null>(null);
   fileName = signal('');
   uploadProgress = signal(0);
   status = signal<UploadStatus>('idle');
+  dragOver = signal(false);
+  hasTotal = signal(false);
+
+  private static readonly MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024; // 50MB
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
+    const file = input.files?.[0] ?? null;
     if (file) {
+      if (file.size > UploadComponent.MAX_FILE_SIZE_BYTES) {
+        this.snackBar.open('A fájl túl nagy (max. 50MB).', 'Bezár', { duration: 3000 });
+        input.value = '';
+        return;
+      }
       this.selectedFile.set(file);
       this.fileName.set(file.name);
       this.status.set('idle');
@@ -201,34 +213,50 @@ export class UploadComponent {
     const file = this.selectedFile();
     if (!file) return;
 
+    // Cancel previous in-flight upload if any
+    this.uploadSub?.unsubscribe();
+    this.uploadProgress.set(0);
+    this.hasTotal.set(false);
     this.status.set('uploading');
-    this.uploadService.upload(file).subscribe({
-      next: event => {
+
+    this.uploadSub = this.uploadService.upload(file).subscribe({
+      next: (event) => {
         if (event.type === HttpEventType.UploadProgress) {
-          this.uploadProgress.set(Math.round(100 * (event.loaded / (event.total || 1))));
+          const total = event.total ?? 0;
+          this.hasTotal.set(!!event.total && event.total > 0);
+          const ratio = total > 0 ? event.loaded / total : 0;
+          this.uploadProgress.set(Math.round(ratio * 100));
         } else if (event.type === HttpEventType.Response) {
-          const body = event.body as UploadResponse;
+          const body = (event.body ?? {}) as Partial<UploadResponse>;
           this.status.set('success');
-          this.snackBar.open(body.message || 'Sikeres feltöltés!', 'Bezár', { duration: 3000 });
-          setTimeout(() => {
-            this.location.back();
-          }, 2000);
+          this.snackBar.open(body.message ?? 'Sikeres feltöltés!', 'Bezár', { duration: 3000 });
+          this.cleanupUploadSub();
+          setTimeout(() => this.location.back(), 2000);
         }
       },
-      error: () => {
+      error: (err) => {
         this.status.set('error');
-        this.snackBar.open('Hiba történt a feltöltés során.', 'Bezár', { duration: 3000 });
-        this.reset(); // Reset on error to allow retry
+        const backendMsg = (err && typeof err === 'object' && 'error' in err && (err as any).error && typeof (err as any).error === 'object' && 'message' in (err as any).error)
+          ? (err as any).error.message as string
+          : null;
+        this.snackBar.open(backendMsg ?? 'Hiba történt a feltöltés során.', 'Bezár', { duration: 4000 });
+        this.cleanupUploadSub();
+        this.reset(); // allow retry
       }
     });
   }
 
   cancelUpload(): void {
-    if (this.status() === 'uploading') {
-      // TODO: Implement actual upload cancellation if the service supports it
+    if (this.uploadSub) {
+      this.uploadSub.unsubscribe();
       this.snackBar.open('Feltöltés megszakítva.', 'Bezár', { duration: 2000 });
     }
+    this.cleanupUploadSub();
     this.reset();
+  }
+
+  private cleanupUploadSub(): void {
+    this.uploadSub = null;
   }
 
   private reset(): void {
@@ -236,27 +264,33 @@ export class UploadComponent {
     this.fileName.set('');
     this.uploadProgress.set(0);
     this.status.set('idle');
+    this.dragOver.set(false);
+    this.hasTotal.set(false);
   }
 
   // Drag and drop handlers
   onDragOver(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    (event.currentTarget as HTMLElement).classList.add('drag-over');
+    this.dragOver.set(true);
   }
 
   onDragLeave(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    (event.currentTarget as HTMLElement).classList.remove('drag-over');
+    this.dragOver.set(false);
   }
 
   onDrop(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    (event.currentTarget as HTMLElement).classList.remove('drag-over');
-    const file = event.dataTransfer?.files[0];
+    this.dragOver.set(false);
+    const file = event.dataTransfer?.files?.[0] ?? null;
     if (file) {
+      if (file.size > UploadComponent.MAX_FILE_SIZE_BYTES) {
+        this.snackBar.open('A fájl túl nagy (max. 50MB).', 'Bezár', { duration: 3000 });
+        return;
+      }
       this.selectedFile.set(file);
       this.fileName.set(file.name);
       this.status.set('idle');
