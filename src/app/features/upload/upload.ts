@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { Location } from '@angular/common';
+import { Router } from '@angular/router';
 import { UploadService } from './upload.service';
 import { HttpEventType } from '@angular/common/http';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -60,7 +61,7 @@ type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
           }
         </mat-card-content>
         <mat-card-actions align="end">
-          <button mat-button (click)="cancelUpload()" [disabled]="status() !== 'uploading'">Mégse</button>
+          <button mat-button (click)="cancelUpload()">Mégse</button>
           <button mat-raised-button color="primary" [disabled]="!selectedFile() || status() === 'uploading'" (click)="onUpload()">
             <mat-icon>file_upload</mat-icon>
             <span>Feltöltés</span>
@@ -182,6 +183,7 @@ export class UploadComponent {
   private uploadService = inject(UploadService);
   private snackBar = inject(MatSnackBar);
   private location = inject(Location);
+  private router = inject(Router);
 
   private uploadSub: Subscription | null = null;
 
@@ -253,6 +255,7 @@ export class UploadComponent {
     }
     this.cleanupUploadSub();
     this.reset();
+    this.router.navigateByUrl('/');
   }
 
   private cleanupUploadSub(): void {
