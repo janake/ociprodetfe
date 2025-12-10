@@ -62,10 +62,6 @@ type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
         </mat-card-content>
         <mat-card-actions align="end">
           <button mat-button (click)="cancelUpload()">Mégse</button>
-          <button mat-raised-button color="primary" [disabled]="!selectedFile() || status() === 'uploading'" (click)="onUpload()">
-            <mat-icon>file_upload</mat-icon>
-            <span>Feltöltés</span>
-          </button>
         </mat-card-actions>
       </mat-card>
     </div>

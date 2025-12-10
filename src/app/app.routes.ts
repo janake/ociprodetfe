@@ -27,6 +27,16 @@ export const routes: Routes = [
     canActivate: [authGuard]
   },
   {
+    path: 'upload-storage',
+    loadComponent: () => retryImport(() => import('./features/upload-storage/upload-storage').then(m => m.UploadStorageComponent)),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'upload-object',
+    loadComponent: () => retryImport(() => import('./features/upload-object/upload-object').then(m => m.UploadObjectComponent)),
+    canActivate: [authGuard]
+  },
+  {
     path: '**',
     redirectTo: ''
   }
