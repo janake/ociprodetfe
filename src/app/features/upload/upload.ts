@@ -61,6 +61,15 @@ type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
           }
         </mat-card-content>
         <mat-card-actions align="end">
+          <button
+            mat-raised-button
+            color="primary"
+            (click)="onUpload()"
+            [disabled]="!selectedFile() || status() === 'uploading' || status() === 'success'"
+          >
+            <mat-icon aria-hidden="true">cloud_upload</mat-icon>
+            @if (status() === 'error') { Újrapróbálom } @else { Feltöltés }
+          </button>
           <button mat-button (click)="cancelUpload()">Mégse</button>
         </mat-card-actions>
       </mat-card>
